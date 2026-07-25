@@ -1,0 +1,30 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8spspresourcelimits
+  annotations:
+    description: >-
+      Requires all containers to specify CPU and Memory resource limits to prevent noisy neighbor / resource exhaustion.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sPSPResourceLimits
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8spspresourcelimits
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          missing_limits(container)
+          msg := sprintf("Container '%v' must specify cpu and memory resource limits", [container.name])
+        }
+
+        missing_limits(container) {
+          not container.resources.limits.cpu
+        }
+
+        missing_limits(container) {
+          not container.resources.limits.memory
+        }

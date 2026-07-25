@@ -1,0 +1,28 @@
+# Falco & Falcosidekick Helm Chart Values for AttestGuard
+
+falco:
+  driver:
+    kind: ebpf
+  
+  rules_file:
+    - /etc/falco/falco_rules.yaml
+    - /etc/falco/falco_rules.local.yaml
+    - /etc/falco/attestguard_rules.yaml
+
+  json_output: true
+  json_include_output_property: true
+  http_output:
+    enabled: true
+    url: "http://falcosidekick:2801/"
+
+falcosidekick:
+  enabled: true
+  config:
+    slack:
+      webhookurl: "https://hooks.slack.com/services/DEMO/ATTESTGUARD/WEBHOOK"
+      minimumpriority: "warning"
+      outputformat: "all"
+    webhook:
+      address: "http://attestguard-response-service.attestguard-system.svc.cluster.local:5000/api/v1/falco-alert"
+      minimumpriority: "warning"
+      customheaders: "X-AttestGuard-HMAC-Signature: ${ATTESTGUARD_HMAC_SECRET}"

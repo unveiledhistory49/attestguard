@@ -1,0 +1,29 @@
+# VULNERABLE DOCKERFILE - Anti-pattern demonstration for AttestGuard
+# DO NOT USE IN PRODUCTION
+FROM node:18
+
+# Anti-pattern 1: Secret hardcoded in ENV instruction
+ENV API_SECRET="super-secret-hardcoded-token-12345"
+ENV NODE_ENV="development"
+
+# Anti-pattern 2: Installing post-exploitation tooling & shell utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    netcat-openbsd \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Anti-pattern 3: Using ADD instead of COPY (can extract tar/fetch URLs unexpectedly)
+ADD package.json /app/package.json
+RUN npm install
+
+ADD app.js /app/app.js
+
+# Anti-pattern 4: Running as root user (no USER directive)
+# User remains root (UID 0)
+
+EXPOSE 8080
+
+CMD ["node", "app.js"]

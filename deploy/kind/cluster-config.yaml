@@ -1,0 +1,11 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: attestguard-cluster
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: /sys/kernel/debug
+    containerPath: /sys/kernel/debug
+  - hostPath: /etc/os-release
+    containerPath: /etc/os-release
+    readOnly: true

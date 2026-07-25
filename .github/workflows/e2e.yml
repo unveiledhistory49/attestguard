@@ -1,0 +1,31 @@
+name: AttestGuard End-to-End Cluster Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  kind-e2e-integration:
+    name: Kind Cluster Admission & eBPF Runtime Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Create Kubernetes kind Cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: deploy/kind/cluster-config.yaml
+          cluster_name: attestguard-cluster
+
+      - name: Install Open Policy Agent (OPA)
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          version: v0.68.0
+
+      - name: Execute AttestGuard E2E Verification Harness
+        run: |
+          chmod +x tests/e2e/run_e2e.sh
+          ./tests/e2e/run_e2e.sh

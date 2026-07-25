@@ -1,0 +1,34 @@
+# HARDENED DOCKERFILE - Production Security Baseline for AttestGuard
+# Stage 1: Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency definitions
+COPY package.json package-lock.json* ./
+
+# Install only production dependencies
+RUN npm ci --only=production
+
+# Copy application source
+COPY app.js ./
+
+# Stage 2: Hardened Runtime (distroless / minimal non-root execution)
+FROM gcr.io/distroless/nodejs20-debian12:nonroot
+
+WORKDIR /app
+
+# Copy built application and node_modules from builder
+COPY --from=builder /app /app
+
+# Security Controls Applied:
+# 1. Non-root user (UID 65532: nonroot)
+USER 65532:65532
+
+# 2. Ephemeral environment variables; zero hardcoded secrets
+ENV NODE_ENV="production"
+ENV PORT=8080
+
+EXPOSE 8080
+
+CMD ["app.js"]

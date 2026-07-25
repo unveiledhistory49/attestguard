@@ -1,0 +1,32 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8spspprivileged
+  annotations:
+    description: >-
+      Denies containers from running in privileged mode (securityContext.privileged: true).
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sPSPPrivileged
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8spspprivileged
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          c_privileged(container)
+          msg := sprintf("Privileged container '%v' is disallowed", [container.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.initContainers[_]
+          c_privileged(container)
+          msg := sprintf("Privileged initContainer '%v' is disallowed", [container.name])
+        }
+
+        c_privileged(container) {
+          container.securityContext.privileged == true
+        }

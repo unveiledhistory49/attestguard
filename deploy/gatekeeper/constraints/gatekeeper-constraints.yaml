@@ -1,0 +1,52 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPNonRoot
+metadata:
+  name: disallowed-root
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPPrivileged
+metadata:
+  name: disallowed-privileged
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPResourceLimits
+metadata:
+  name: require-resource-limits
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPAlwaysPullImage
+metadata:
+  name: disallowed-latest-tag
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockRevokedDigests
+metadata:
+  name: block-revoked-digests
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+  parameters:
+    revokedDigests:
+      - "sha256:d3b07384d113edec49eaa6238ad5ff0000000000000000000000000000000000"

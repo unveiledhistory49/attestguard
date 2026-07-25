@@ -1,0 +1,55 @@
+# AttestGuard Custom Falco Rules - eBPF Runtime Detection Baseline
+
+- rule: AttestGuard Interactive Shell Spawned
+  desc: Detects interactive shell execution inside a running workload container
+  condition: >
+    spawned_process and
+    container and
+    proc.name in (bash, sh, zsh, ksh, csh, dash) and
+    not proc.pname in (entrypoint.sh, init.sh)
+  output: >
+    AttestGuard Runtime Alert: Interactive shell spawned in container 
+    (user=%user.name pod=%k8s.pod.name container_id=%container.id image=%container.image.repository:%container.image.tag 
+    digest=%container.image.digest process=%proc.name cmdline=%proc.cmdline parent=%proc.pname)
+  priority: CRITICAL
+  tags: [attestguard, container, execution, shell]
+
+- rule: AttestGuard Package Manager Execution
+  desc: Detects post-exploitation package manager tool installation inside a running container
+  condition: >
+    spawned_process and
+    container and
+    proc.name in (apt, apt-get, apk, dpkg, rpm, yum, dnf)
+  output: >
+    AttestGuard Runtime Alert: Package manager executed inside container 
+    (user=%user.name pod=%k8s.pod.name container_id=%container.id image=%container.image.repository:%container.image.tag 
+    digest=%container.image.digest process=%proc.name cmdline=%proc.cmdline)
+  priority: CRITICAL
+  tags: [attestguard, container, execution, package_manager]
+
+- rule: AttestGuard K8s ServiceAccount Token Exfiltration Attempt
+  desc: Detects unauthorized process reading Kubernetes ServiceAccount secret tokens
+  condition: >
+    open_read and
+    container and
+    fd.name startswith /var/run/secrets/kubernetes.io/serviceaccount/
+  output: >
+    AttestGuard Runtime Alert: Kubernetes ServiceAccount token read access 
+    (user=%user.name pod=%k8s.pod.name container_id=%container.id image=%container.image.repository:%container.image.tag 
+    digest=%container.image.digest process=%proc.name file=%fd.name)
+  priority: CRITICAL
+  tags: [attestguard, container, credential_access]
+
+- rule: AttestGuard Unauthorized Outbound Egress
+  desc: Detects non-standard egress network socket creation from workload containers
+  condition: >
+    outbound and
+    container and
+    not fd.sport in (8080, 8443, 9090) and
+    not fd.rip in ("127.0.0.1", "10.96.0.1")
+  output: >
+    AttestGuard Runtime Alert: Unauthorized outbound egress connection 
+    (user=%user.name pod=%k8s.pod.name container_id=%container.id image=%container.image.repository:%container.image.tag 
+    digest=%container.image.digest connection=%fd.name proto=%fd.l4proto)
+  priority: WARNING
+  tags: [attestguard, container, network, egress]

@@ -1,0 +1,28 @@
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: attestguard-require-cosign-and-slsa
+spec:
+  images:
+    - glob: "ghcr.io/attestguard/*"
+    - glob: "docker.io/attestguard/*"
+  authorities:
+    - name: attestguard-keyless-github-oidc
+      keyless:
+        url: "https://fulcio.sigstore.dev"
+        identities:
+          - issuer: "https://token.actions.githubusercontent.com"
+            subjectRegExp: "^https://github.com/[a-zA-Z0-9_-]+/attestguard/\\.github/workflows/ci\\.yml@refs/heads/main$"
+      ctlog:
+        url: "https://rekor.sigstore.dev"
+      attestations:
+        - name: slsa-provenance-attestation
+          predicateType: "https://slsa.dev/provenance/v1"
+          policy:
+            type: "rego"
+            data: |
+              package sigstore
+              default is_valid = false
+              is_valid {
+                input.predicate.buildDefinition.buildType == "https://actions.github.com/buildtypes/generator/v1"
+              }

@@ -1,0 +1,86 @@
+name: AttestGuard CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  opa-policy-unit-tests:
+    name: OPA Rego Admission Policy Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Open Policy Agent (OPA)
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          version: v0.68.0
+
+      - name: Run OPA Rego Unit Tests (TPR & FPR Verification)
+        run: |
+          opa test deploy/gatekeeper/policies/ tests/rego/ -v
+
+  response-service-unit-tests:
+    name: Incident Response Service Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r apps/response-service/requirements.txt
+
+      - name: Run Response Service Test Suite
+        run: |
+          python apps/response-service/test_app.py
+
+  supply-chain-security-scan:
+    name: Build, SBOM, Vulnerability Scan & SLSA Provenance
+    runs-on: ubuntu-latest
+    needs: [opa-policy-unit-tests, response-service-unit-tests]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Required for Cosign OIDC Keyless signing
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Syft SBOM Generator
+        uses: anchore/sbom-action/download-syft@v0.16.0
+
+      - name: Generate Software Bill of Materials (Syft SBOM)
+        run: |
+          syft dir:apps/target-service -o json > sbom.spdx.json
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@v0.24.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'apps/target-service'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+
+      - name: Install Sigstore Cosign
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Install SLSA Verifier
+        run: |
+          curl -sL https://github.com/slsa-framework/slsa-verifier/releases/download/v2.6.0/slsa-verifier-linux-amd64 -o slsa-verifier
+          chmod +x slsa-verifier
+          sudo mv slsa-verifier /usr/local/bin/
+
+      - name: Verify Tool Installation
+        run: |
+          cosign version
+          slsa-verifier version
