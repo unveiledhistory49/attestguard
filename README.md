@@ -1,8 +1,4 @@
 # AttestGuard — Secure Software Supply Chain & Workload Protection
-
-> **A Production-Grade Shift-Left & Runtime Security Defense Architecture for Kubernetes**  
-> *Built by an Elite Cybersecurity Architect & 10x Systems Engineer*
-
 ---
 
 ## 1. Guardrails & Engineering Contract
